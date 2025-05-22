@@ -14,7 +14,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import LiveTracking from '../../components/LiveTracking';
 import { GoogleMap, Marker, Circle } from '@react-google-maps/api';
 import { getToken } from '../services/auth.service';
-import myTaxyLogo from '../assets/myTaxy.png';
+import myTaxyLogo from '../assets/MyTaxy.png';
 
 const Home = () => {
 

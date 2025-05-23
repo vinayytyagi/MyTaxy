@@ -94,9 +94,9 @@ const CaptainLogin = () => {
                     setError(errorMessage);
                 }
             } else {
-                const errorMessage = error.response?.data?.message || error.message || 'Guest login failed. Please try again.';
-                toast.error(errorMessage);
-                setError(errorMessage);
+            const errorMessage = error.response?.data?.message || error.message || 'Guest login failed. Please try again.';
+            toast.error(errorMessage);
+            setError(errorMessage);
             }
         } finally {
             setIsLoading(false);

@@ -21,7 +21,14 @@ const Home = () => {
     const [ pickup, setPickup ] = useState('')
     const [ destination, setDestination ] = useState('')
     const [ panelOpen, setPanelOpen ] = useState(false)
-    const [userLocation, setUserLocation] = useState({ lat: 28.6139, lng: 77.2090 }); // Default location
+    const [userLocation, setUserLocation] = useState(() => {
+        // Try to get cached location from localStorage
+        const cachedLocation = localStorage.getItem('userLocation');
+        if (cachedLocation) {
+            return JSON.parse(cachedLocation);
+        }
+        return { lat: 28.6139, lng: 77.2090 }; // Default location
+    });
     const [mapCenter, setMapCenter] = useState({ lat: 28.6139, lng: 77.2090 }); // Default center
     const mapRef = useRef(null);
     const vehiclePanelRef = useRef(null)
@@ -49,6 +56,8 @@ const Home = () => {
     const [isLoadingDestination, setIsLoadingDestination] = useState(false);
     const [pickupLocationSet, setPickupLocationSet] = useState(false);
     const [destinationLocationSet, setDestinationLocationSet] = useState(false);
+    const [isLoadingFare, setIsLoadingFare] = useState(false);
+    const [fareError, setFareError] = useState(null);
 
     const navigate = useNavigate()
 
@@ -99,6 +108,13 @@ const Home = () => {
         }
     }, [user, socket, navigate])
 
+    // Cache location when it changes
+    useEffect(() => {
+        if (userLocation) {
+            localStorage.setItem('userLocation', JSON.stringify(userLocation));
+        }
+    }, [userLocation]);
+
     //this for handlingig=ng pikups
     const handlePickupChange = async (e) => {
         const value = e.target.value;
@@ -114,10 +130,10 @@ const Home = () => {
             const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/maps/get-suggestions`, {
                 params: { input: value },
                 headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                    Authorization: `Bearer ${getToken('user')}`
                 }
-            })
-            setPickupSuggestions(response.data)
+            });
+            setPickupSuggestions(response.data);
         } catch {
             // handle error
         }
@@ -136,10 +152,10 @@ const Home = () => {
             const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/maps/get-suggestions`, {
                 params: { input: value },
                 headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                    Authorization: `Bearer ${getToken('user')}`
                 }
-            })
-            setDestinationSuggestions(response.data)
+            });
+            setDestinationSuggestions(response.data);
         } catch {
             // handle error
         }
@@ -226,18 +242,28 @@ const Home = () => {
     }, [panelOpen, activeField]);
 
     async function findTrip() {
-        setVehiclePanel(true)
-        setPanelOpen(false)
+        try {
+            setIsLoadingFare(true);
+            setFareError(null);
+            setVehiclePanel(true);
+            setPanelOpen(false);
+            setFare({}); // Reset fare before calculating new one
 
-        const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/get-fare`, {
-            params: { pickup, destination },
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`
-            }
-        })
-        // console.log(response.data);
-        setFare(response.data)
-
+            const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/get-fare`, {
+                params: { pickup, destination },
+                headers: {
+                    Authorization: `Bearer ${getToken('user')}`
+                }
+            });
+            setFare(response.data);
+        } catch (error) {
+            console.error('Error calculating fare:', error);
+            setFareError('Unable to calculate fare. Please try again.');
+            setVehiclePanel(false);
+            setFare({});
+        } finally {
+            setIsLoadingFare(false);
+        }
     }
 
     async function createRide() {
@@ -524,66 +550,70 @@ const Home = () => {
             setIsLoadingDestination(true);
         }
 
+        // First try to use cached location
+        if (userLocation && userLocation.lat && userLocation.lng) {
+            try {
+                const response = await axios.get(
+                    `${import.meta.env.VITE_BASE_URL}/maps/get-address`,
+                    {
+                        params: {
+                            lat: userLocation.lat,
+                            lng: userLocation.lng
+                        },
+                        headers: {
+                            Authorization: `Bearer ${getToken('user')}`
+                        }
+                    }
+                );
+
+                if (field === 'pickup') {
+                    setPickup(response.data);
+                    setPickupLocationSet(true);
+                    setIsLoadingPickup(false);
+                } else {
+                    setDestination(response.data);
+                    setDestinationLocationSet(true);
+                    setIsLoadingDestination(false);
+                }
+                return;
+            } catch (error) {
+                console.error('Error getting address from cached location:', error);
+            }
+        }
+
+        // If cached location fails or doesn't exist, get new location
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
-                    const { latitude, longitude } = position.coords;
+                    const newLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    setUserLocation(newLocation);
+
                     try {
-                        // First try to get address from Google Maps Geocoder
-                        const geocoder = new window.google.maps.Geocoder();
-                        geocoder.geocode(
-                            { location: { lat: latitude, lng: longitude } },
-                            async (results, status) => {
-                                if (status === 'OK' && results[0]) {
-                                    const address = results[0].formatted_address;
-                                    if (field === 'pickup') {
-                                        setPickup(address);
-                                        setPickupSuggestions([]);
-                                        setPickupLocationSet(true);
-                                    } else {
-                                        setDestination(address);
-                                        setDestinationSuggestions([]);
-                                        setDestinationLocationSet(true);
-                                    }
-                                    
-                                    // Only close panel if pickup is set and we're setting pickup
-                                    if (field === 'pickup' && destination) {
-                                        setPanelOpen(false);
-                                        setVehiclePanel(true);
-                                    }
-                                } else {
-                                    // Fallback to backend if Google Geocoder fails
-                                    const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/maps/reverse-geocode`, {
-                                        params: { 
-                                            lat: latitude,
-                                            lng: longitude
-                                        },
-                                        headers: {
-                                            Authorization: `Bearer ${localStorage.getItem('token')}`
-                                        }
-                                    });
-                                    
-                                    if (field === 'pickup') {
-                                        setPickup(response.data);
-                                        setPickupSuggestions([]);
-                                        setPickupLocationSet(true);
-                                    } else {
-                                        setDestination(response.data);
-                                        setDestinationSuggestions([]);
-                                        setDestinationLocationSet(true);
-                                    }
-                                    
-                                    // Only close panel if pickup is set and we're setting pickup
-                                    if (field === 'pickup' && destination) {
-                                        setPanelOpen(false);
-                                        setVehiclePanel(true);
-                                    }
+                        const response = await axios.get(
+                            `${import.meta.env.VITE_BASE_URL}/maps/get-address`,
+                            {
+                                params: {
+                                    lat: newLocation.lat,
+                                    lng: newLocation.lng
+                                },
+                                headers: {
+                                    Authorization: `Bearer ${getToken('user')}`
                                 }
                             }
                         );
+
+                        if (field === 'pickup') {
+                            setPickup(response.data);
+                            setPickupLocationSet(true);
+                        } else {
+                            setDestination(response.data);
+                            setDestinationLocationSet(true);
+                        }
                     } catch (error) {
                         console.error('Error getting address:', error);
-                        alert('Unable to get your address. Please try again.');
                     } finally {
                         if (field === 'pickup') {
                             setIsLoadingPickup(false);
@@ -594,21 +624,18 @@ const Home = () => {
                 },
                 (error) => {
                     console.error('Error getting location:', error);
-                    alert('Unable to get your location. Please check your location settings.');
                     if (field === 'pickup') {
                         setIsLoadingPickup(false);
                     } else {
                         setIsLoadingDestination(false);
                     }
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
                 }
             );
-        } else {
-            alert('Geolocation is not supported by your browser');
-            if (field === 'pickup') {
-                setIsLoadingPickup(false);
-            } else {
-                setIsLoadingDestination(false);
-            }
         }
     };
 
@@ -626,10 +653,16 @@ const Home = () => {
         }
     };
 
+    // Add cleanup when locations change
+    useEffect(() => {
+        setFare({});
+        setFareError(null);
+    }, [pickup, destination]);
+
     return (
         <div className="relative h-screen w-full">
-            <div className='h-screen relative overflow-hidden bg-gray-50'>
-                <div className='fixed px-6 py-2 top-0 flex items-center justify-between w-screen z-50 bg-white/10 backdrop-blur-xs shadow-sm'>
+        <div className='h-screen relative overflow-hidden bg-gray-50'>
+            <div className='fixed px-6 py-2 top-0 flex items-center justify-between w-screen z-50 bg-white/10 backdrop-blur-xs shadow-sm'>
                     <div 
                         className="flex items-center gap-2 cursor-pointer" 
                         onClick={() => window.location.reload()}
@@ -637,284 +670,318 @@ const Home = () => {
                         <img className='w-12 h-12' src={myTaxyLogo} alt="MyTaxy Logo"/>
                         <span className="text-2xl font-bold text-gray-900">MyTaxy</span>
                     </div>
-                    <div className="flex items-center space-x-3">
-                        <Link 
-                            to='/user/profile' 
+                <div className="flex items-center space-x-3">
+                    <Link 
+                        to='/user/profile' 
                             className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer'
-                        >
-                            <i className="text-xl ri-user-line"></i>
-                        </Link>
-                        <Link 
-                            to='/user/logout' 
+                    >
+                        <i className="text-xl ri-user-line"></i>
+                    </Link>
+                    <Link 
+                        to='/user/logout' 
                             className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer'
-                        >
-                            <i className="text-xl ri-logout-box-r-line"></i>
-                        </Link>
-                    </div>
+                    >
+                        <i className="text-xl ri-logout-box-r-line"></i>
+                    </Link>
                 </div>
+            </div>
 
-                {/* Show live tracking if there's an active ride */}
-                {showLiveTracking && currentRide && (
-                    <div className="fixed inset-0 z-30 bg-white">
-                        <div className="h-full">
-                            <LiveTracking rideData={currentRide} />
-                        </div>
-                        <button 
-                            onClick={() => setShowLiveTracking(false)}
+            {/* Show live tracking if there's an active ride */}
+            {showLiveTracking && currentRide && (
+                <div className="fixed inset-0 z-30 bg-white">
+                    <div className="h-full">
+                        <LiveTracking rideData={currentRide} />
+                    </div>
+                    <button 
+                        onClick={() => setShowLiveTracking(false)}
                             className="fixed z-40 bottom-4 right-4 bg-gray-100 text-gray-600 p-4 rounded-full shadow-lg hover:bg-gray-200 transition-colors cursor-pointer"
-                        >
-                            <i className="ri-arrow-down-line"></i>
-                        </button>
-                    </div>
-                )}
-
-                {/* Full screen map */}
-                <div className='h-full w-full fixed top-0 left-0 z-0'>
-                     <LiveTracking rideData={null} />
+                    >
+                        <i className="ri-arrow-down-line"></i>
+                    </button>
                 </div>
+            )}
 
-                {/* Default view when panel is closed */}
-                {!panelOpen && (
-                    <div className='absolute bottom-0 inset-x-0 z-10 max-w-2xl mx-auto md:max-w-2xl md:mx-auto shadow-lg rounded-t-3xl overflow-hidden'>
-                        <div className='p-6 bg-white'>
-                             <h4 className='text-2xl font-semibold mb-4 text-gray-800'>Find a trip</h4>
-                        <form className='relative py-3' onSubmit={(e) => {
-                            submitHandler(e)
-                        }}>
-                                <div className="line absolute h-16 w-1 top-[50%] -translate-y-1/2 left-5 bg-[#fdc700] rounded-full z-10"></div>
-                                <div className="relative">
-                            <input
-                                        ref={pickupInputRef}
-                                onClick={() => {
-                                    setPanelOpen(true)
-                                    setActiveField('pickup')
-                                }}
-                                value={pickup}
-                                onChange={handlePickupChange}
-                                        className='bg-gray-50 px-12 py-3 text-lg rounded-xl w-full border border-gray-200 focus:border-[#fdc700] focus:ring-2 focus:ring-[#fdc700]/20 outline-none transition-all shadow-sm'
-                                type="text"
-                                placeholder='Add a pick-up location'
-                            />
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (pickup) {
-                                                handleClearInput('pickup');
-                                            } else {
-                                                handleMyLocationClick('pickup');
-                                            }
-                                        }}
-                                        className={`absolute right-3 top-1/2 -translate-y-1/2 ${pickupLocationSet && !pickup ? 'text-gray-400' : pickup ? 'text-gray-500 hover:text-gray-600' : 'text-gray-500 hover:text-[#fdc700]'} transition-colors cursor-pointer`}
-                                        disabled={isLoadingPickup}
-                                    >
-                                        {isLoadingPickup ? (
-                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-400 border-t-transparent"></div>
-                                        ) : pickup ? (
-                                            <i className="ri-close-circle-line text-xl"></i>
-                                        ) : (
-                                            <i className="ri-crosshair-2-line"></i>
-                                        )}
-                                    </button>
-                                </div>
-                                <div className="relative mt-3">
-                            <input
-                                        ref={destinationInputRef}
-                                onClick={() => {
-                                    setPanelOpen(true)
-                                    setActiveField('destination')
-                                }}
-                                value={destination}
-                                onChange={handleDestinationChange}
-                                        className='bg-gray-50 px-12 py-3 text-lg rounded-xl w-full border border-gray-200 focus:border-[#fdc700] focus:ring-2 focus:ring-[#fdc700]/20 outline-none transition-all shadow-sm'
-                                type="text"
-                                        placeholder='Enter your destination'
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (destination) {
-                                                handleClearInput('destination');
-                                            } else {
-                                                handleMyLocationClick('destination');
-                                            }
-                                        }}
-                                        className={`absolute right-3 top-1/2 -translate-y-1/2 ${destinationLocationSet && !destination ? 'text-gray-400' : destination ? 'text-gray-500 hover:text-gray-600' : 'text-gray-500 hover:text-[#fdc700]'} transition-colors cursor-pointer`}
-                                        disabled={isLoadingDestination}
-                                    >
-                                        {isLoadingDestination ? (
-                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-400 border-t-transparent"></div>
-                                        ) : destination ? (
-                                            <i className="ri-close-circle-line text-xl"></i>
-                                        ) : (
-                                            <i className="ri-crosshair-2-line"></i>
-                                        )}
-                                    </button>
-                                </div>
+            {/* Full screen map */}
+            <div className='h-full w-full fixed top-0 left-0 z-0'>
+                 <LiveTracking rideData={null} />
+            </div>
+
+            {/* Default view when panel is closed */}
+            {!panelOpen && (
+                <div className='fixed bottom-0 inset-x-0 z-10 max-w-2xl mx-auto md:max-w-2xl md:mx-auto shadow-lg rounded-t-3xl overflow-hidden'>
+                    <div className='p-6 bg-white'>
+                        <h4 className='text-2xl font-semibold mb-4 text-gray-800'>Find a trip</h4>
+                        <form className='relative py-3' onSubmit={submitHandler}>
+                            <div className="line absolute h-16 w-1 top-[50%] -translate-y-1/2 left-5 bg-[#fdc700] rounded-full z-10"></div>
+                            <div className="relative">
+                                <input
+                                    ref={pickupInputRef}
+                                    onClick={() => {
+                                        setPanelOpen(true)
+                                        setActiveField('pickup')
+                                    }}
+                                    value={pickup}
+                                    onChange={handlePickupChange}
+                                    className='bg-gray-50 px-12 py-3 text-lg rounded-xl w-full border border-gray-200 focus:border-[#fdc700] focus:ring-2 focus:ring-[#fdc700]/20 outline-none transition-all shadow-sm'
+                                    type="text"
+                                    placeholder='Add a pick-up location'
+                                />
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (pickup) {
+                                            handleClearInput('pickup');
+                                        } else {
+                                            handleMyLocationClick('pickup');
+                                        }
+                                    }}
+                                    className={`absolute right-3 top-1/2 -translate-y-1/2 ${pickupLocationSet && !pickup ? 'text-gray-400' : pickup ? 'text-gray-500 hover:text-gray-600' : 'text-gray-500 hover:text-[#fdc700]'} transition-colors cursor-pointer`}
+                                    disabled={isLoadingPickup}
+                                >
+                                    {isLoadingPickup ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#fdc700] border-t-transparent"></div>
+                                    ) : pickup ? (
+                                        <i className="ri-close-circle-line text-xl"></i>
+                                    ) : (
+                                        <i className="ri-crosshair-2-line"></i>
+                                    )}
+                                </button>
+                            </div>
+                            <div className="relative mt-3">
+                                <input
+                                    ref={destinationInputRef}
+                                    onClick={() => {
+                                        setPanelOpen(true)
+                                        setActiveField('destination')
+                                    }}
+                                    value={destination}
+                                    onChange={handleDestinationChange}
+                                    className='bg-gray-50 px-12 py-3 text-lg rounded-xl w-full border border-gray-200 focus:border-[#fdc700] focus:ring-2 focus:ring-[#fdc700]/20 outline-none transition-all shadow-sm'
+                                    type="text"
+                                    placeholder='Enter your destination'
+                                />
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (destination) {
+                                            handleClearInput('destination');
+                                        } else {
+                                            handleMyLocationClick('destination');
+                                        }
+                                    }}
+                                    className={`absolute right-3 top-1/2 -translate-y-1/2 ${destinationLocationSet && !destination ? 'text-gray-400' : destination ? 'text-gray-500 hover:text-gray-600' : 'text-gray-500 hover:text-[#fdc700]'} transition-colors cursor-pointer`}
+                                    disabled={isLoadingDestination}
+                                >
+                                    {isLoadingDestination ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#fdc700] border-t-transparent"></div>
+                                    ) : destination ? (
+                                        <i className="ri-close-circle-line text-xl"></i>
+                                    ) : (
+                                        <i className="ri-crosshair-2-line"></i>
+                                    )}
+                                </button>
+                            </div>
                         </form>
                         <button
                             onClick={findTrip}
-                                disabled={!pickup || !destination}
-                                className={`bg-[#fdc700] text-gray-800 font-semibold px-4 py-3 rounded-xl mt-4 w-full transition-all shadow-sm ${
-                                    !pickup || !destination 
-                                        ? 'opacity-50 cursor-not-allowed' 
-                                        : 'hover:bg-[#fdc700]/90 hover:shadow-md active:scale-[0.98]'
-                                }`}>
-                            Find Trip
+                            disabled={!pickup || !destination || isLoadingFare}
+                            className={`relative bg-[#fdc700] text-gray-800 font-semibold px-4 py-3 rounded-xl mt-4 w-full transition-all shadow-sm ${
+                                !pickup || !destination || isLoadingFare
+                                    ? 'opacity-50 cursor-not-allowed' 
+                                    : 'hover:bg-[#fdc700]/90 hover:shadow-md active:scale-[0.98]'
+                            }`}>
+                            {isLoadingFare ? (
+                                <div className="flex items-center justify-center">
+                                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-800 border-t-transparent mr-2"></div>
+                                    Calculating Fare...
+                                </div>
+                            ) : (
+                                'Find Trip'
+                            )}
                         </button>
-                        </div>
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* Location Search Panel - Controlled by panelOpen state */}
-                {panelOpen && (
-                    <div ref={panelRef} className='bg-white h-[calc(100%-80px)] fixed inset-x-0 top-[80px] z-50 shadow-lg rounded-t-3xl overflow-y-auto transform translate-y-full max-w-2xl mx-auto md:max-w-2xl md:mx-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]'>
-                        <div className="sticky top-0 bg-white/80 backdrop-blur-sm p-4 border-b flex justify-between items-center rounded-t-3xl z-50">
-                            <h4 className="text-lg font-semibold text-gray-800">Select locations</h4>
-                            <button 
-                                onClick={() => setPanelOpen(false)}
-                                className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-                            >
-                                <i className="ri-close-line text-xl"></i>
-                            </button>
-                        </div>
-                        <div className='p-6'>
-                            <h4 className='text-2xl font-semibold mb-4 text-gray-800'>Find a trip</h4>
-                            <form className='relative py-3' onSubmit={(e) => {
-                                submitHandler(e)
-                            }}>
-                                <div className="line absolute h-16 w-1 top-[50%] -translate-y-1/2 left-5 bg-[#fdc700] rounded-full z-10"></div>
-                                <div className="relative">
-                                    <input
-                                        ref={pickupInputRef}
-                                        onClick={() => {
-                                            setActiveField('pickup')
-                                        }}
-                                        value={pickup}
-                                        onChange={handlePickupChange}
-                                        className='bg-gray-50 px-12 py-3 text-lg rounded-lg w-full border border-gray-200 focus:border-[#fdc700] focus:ring-2 focus:ring-[#fdc700]/20 outline-none transition-all'
-                                        type="text"
-                                        placeholder='Add a pick-up location'
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (pickup) {
-                                                handleClearInput('pickup');
-                                            } else {
-                                                handleMyLocationClick('pickup');
-                                            }
-                                        }}
-                                        className={`absolute right-3 top-1/2 -translate-y-1/2 ${pickupLocationSet && !pickup ? 'text-gray-400' : pickup ? 'text-gray-500 hover:text-gray-600' : 'text-gray-500 hover:text-[#fdc700]'} transition-colors cursor-pointer`}
-                                        disabled={isLoadingPickup}
-                                    >
-                                        {isLoadingPickup ? (
-                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-400 border-t-transparent"></div>
-                                        ) : pickup ? (
-                                            <i className="ri-close-circle-line text-xl"></i>
-                                        ) : (
-                                            <i className="ri-crosshair-2-line"></i>
-                                        )}
-                                    </button>
-                                </div>
-                                <div className="relative mt-3">
-                                    <input
-                                        ref={destinationInputRef}
-                                        onClick={() => {
-                                            setActiveField('destination')
-                                        }}
-                                        value={destination}
-                                        onChange={handleDestinationChange}
-                                        className='bg-gray-50 px-12 py-3 text-lg rounded-lg w-full border border-gray-200 focus:border-[#fdc700] focus:ring-2 focus:ring-[#fdc700]/20 outline-none transition-all'
-                                        type="text"
-                                        placeholder='Enter your destination'
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (destination) {
-                                                handleClearInput('destination');
-                                            } else {
-                                                handleMyLocationClick('destination');
-                                            }
-                                        }}
-                                        className={`absolute right-3 top-1/2 -translate-y-1/2 ${destinationLocationSet && !destination ? 'text-gray-400' : destination ? 'text-gray-500 hover:text-gray-600' : 'text-gray-500 hover:text-[#fdc700]'} transition-colors cursor-pointer`}
-                                        disabled={isLoadingDestination}
-                                    >
-                                        {isLoadingDestination ? (
-                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-400 border-t-transparent"></div>
-                                        ) : destination ? (
-                                            <i className="ri-close-circle-line text-xl"></i>
-                                        ) : (
-                                            <i className="ri-crosshair-2-line"></i>
-                                        )}
-                                    </button>
-                                </div>
-                            </form>
-                            <button
-                                onClick={findTrip}
-                                disabled={!pickup || !destination}
-                                className={`bg-[#fdc700] text-gray-800 font-semibold px-4 py-3 rounded-lg mt-4 w-full transition-colors shadow-sm cursor-pointer ${
-                                    !pickup || !destination 
-                                        ? 'opacity-50 cursor-not-allowed' 
-                                        : 'hover:bg-[#fdc700]/90'
-                                }`}>
-                                Find Trip
-                            </button>
-                        </div>
-                        <LocationSearchPanel
-                            suggestions={activeField === 'pickup' ? pickupSuggestions : destinationSuggestions}
-                            setPanelOpen={setPanelOpen}
-                            setVehiclePanel={setVehiclePanel}
-                            setPickup={setPickup}
-                            setDestination={setDestination}
-                            activeField={activeField}
-                            pickup={pickup}
-                            destination={destination}
-                        />
+            {/* Location Search Panel - Controlled by panelOpen state */}
+            {panelOpen && (
+                <div ref={panelRef} className='fixed inset-x-0 bottom-0 h-[calc(100vh-80px)] z-50 bg-white shadow-lg rounded-t-3xl overflow-y-auto transform translate-y-full max-w-2xl mx-auto md:max-w-2xl md:mx-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]'>
+                    <div className="sticky top-0 bg-white/80 backdrop-blur-sm p-4 border-b flex justify-between items-center rounded-t-3xl z-50">
+                        <h4 className="text-lg font-semibold text-gray-800">Select locations</h4>
+                        <button 
+                            onClick={() => setPanelOpen(false)}
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                        >
+                            <i className="ri-close-line text-xl"></i>
+                        </button>
                     </div>
-                )}
-                <div className="panels-container relative z-50">
-                    <div ref={vehiclePanelRef} className='fixed w-full z-40 bottom-0 translate-y-full bg-white px-3 py-10 pt-12 md:max-w-2xl md:left-1/2 md:-translate-x-1/2'>
+                    <div className='p-6'>
+                        <h4 className='text-2xl font-semibold mb-4 text-gray-800'>Find a trip</h4>
+                        <form className='relative py-3' onSubmit={submitHandler}>
+                            <div className="line absolute h-16 w-1 top-[50%] -translate-y-1/2 left-5 bg-[#fdc700] rounded-full z-10"></div>
+                            <div className="relative">
+                                <input
+                                    ref={pickupInputRef}
+                                    onClick={() => {
+                                        setActiveField('pickup')
+                                    }}
+                                    value={pickup}
+                                    onChange={handlePickupChange}
+                                    className='bg-gray-50 px-12 py-3 text-lg rounded-lg w-full border border-gray-200 focus:border-[#fdc700] focus:ring-2 focus:ring-[#fdc700]/20 outline-none transition-all'
+                                    type="text"
+                                    placeholder='Add a pick-up location'
+                                />
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (pickup) {
+                                            handleClearInput('pickup');
+                                        } else {
+                                            handleMyLocationClick('pickup');
+                                        }
+                                    }}
+                                    className={`absolute right-3 top-1/2 -translate-y-1/2 ${pickupLocationSet && !pickup ? 'text-gray-400' : pickup ? 'text-gray-500 hover:text-gray-600' : 'text-gray-500 hover:text-[#fdc700]'} transition-colors cursor-pointer`}
+                                    disabled={isLoadingPickup}
+                                >
+                                    {isLoadingPickup ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#fdc700] border-t-transparent"></div>
+                                    ) : pickup ? (
+                                        <i className="ri-close-circle-line text-xl"></i>
+                                    ) : (
+                                        <i className="ri-crosshair-2-line"></i>
+                                    )}
+                                </button>
+                            </div>
+                            <div className="relative mt-3">
+                                <input
+                                    ref={destinationInputRef}
+                                    onClick={() => {
+                                        setActiveField('destination')
+                                    }}
+                                    value={destination}
+                                    onChange={handleDestinationChange}
+                                    className='bg-gray-50 px-12 py-3 text-lg rounded-lg w-full border border-gray-200 focus:border-[#fdc700] focus:ring-2 focus:ring-[#fdc700]/20 outline-none transition-all'
+                                    type="text"
+                                    placeholder='Enter your destination'
+                                />
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (destination) {
+                                            handleClearInput('destination');
+                                        } else {
+                                            handleMyLocationClick('destination');
+                                        }
+                                    }}
+                                    className={`absolute right-3 top-1/2 -translate-y-1/2 ${destinationLocationSet && !destination ? 'text-gray-400' : destination ? 'text-gray-500 hover:text-gray-600' : 'text-gray-500 hover:text-[#fdc700]'} transition-colors cursor-pointer`}
+                                    disabled={isLoadingDestination}
+                                >
+                                    {isLoadingDestination ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#fdc700] border-t-transparent"></div>
+                                    ) : destination ? (
+                                        <i className="ri-close-circle-line text-xl"></i>
+                                    ) : (
+                                        <i className="ri-crosshair-2-line"></i>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                        <button
+                            onClick={findTrip}
+                            disabled={!pickup || !destination || isLoadingFare}
+                            className={`relative bg-[#fdc700] text-gray-800 font-semibold px-4 py-3 rounded-xl mt-4 w-full transition-all shadow-sm ${
+                                !pickup || !destination || isLoadingFare
+                                    ? 'opacity-50 cursor-not-allowed' 
+                                    : 'hover:bg-[#fdc700]/90 hover:shadow-md active:scale-[0.98]'
+                            }`}>
+                            {isLoadingFare ? (
+                                <div className="flex items-center justify-center">
+                                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-800 border-t-transparent mr-2"></div>
+                                    Calculating Fare...
+                                </div>
+                            ) : (
+                                'Find Trip'
+                            )}
+                        </button>
+                    </div>
+                    {fareError && (
+                        <div className="mt-2 text-red-500 text-sm text-center">
+                            {fareError}
+                        </div>
+                    )}
+                    <LocationSearchPanel
+                        suggestions={activeField === 'pickup' ? pickupSuggestions : destinationSuggestions}
+                        setPanelOpen={setPanelOpen}
+                        setPickup={setPickup}
+                        setDestination={setDestination}
+                        activeField={activeField}
+                        pickup={pickup}
+                        destination={destination}
+                        setPickupSuggestions={setPickupSuggestions}
+                        setDestinationSuggestions={setDestinationSuggestions}
+                    />
+                </div>
+            )}
+            <div className="panels-container relative z-50">
+                <div ref={vehiclePanelRef} className='fixed w-full z-40 bottom-0 translate-y-full bg-white px-3 py-10 pt-12 md:max-w-2xl md:left-1/2 md:-translate-x-1/2'>
+                    {isLoadingFare ? (
+                        <div className="space-y-4">
+                            <div className="h-8 bg-gray-200 rounded-lg animate-pulse"></div>
+                            <div className="space-y-3">
+                                {[1, 2, 3].map((i) => (
+                                    <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                                        <div className="h-12 w-12 bg-gray-200 rounded-full animate-pulse"></div>
+                                        <div className="flex-1 space-y-2">
+                                            <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                                            <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                                        </div>
+                                        <div className="h-8 w-20 bg-gray-200 rounded animate-pulse"></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
                         <VehiclePanel
                             selectVehicle={setVehicleType}
                             fare={fare} 
                             setConfirmRidePanel={setConfirmRidePanel} 
                             setVehiclePanel={setVehiclePanel} 
                         />
-                    </div>
-                    <div ref={confirmRidePanelRef} className='fixed w-full hidden z-40 bottom-0 translate-y-full bg-white px-3 py-6 pt-12 md:max-w-2xl md:left-1/2 md:-translate-x-1/2'>
-                        <ConfirmRide
-                            pickup={pickup}
-                            destination={destination}
-                            fare={fare}
-                            vehicleType={vehicleType}
-                            setConfirmRidePanel={setConfirmRidePanel} 
-                            setVehicleFound={setVehicleFound}
-                            createRide={createRide}
-                        />
-                    </div>
-                    <div ref={vehicleFoundRef} className='fixed w-full hidden z-40 bottom-0 translate-y-full bg-white px-3 py-6 pt-12 md:max-w-2xl md:left-1/2 md:-translate-x-1/2'>
-                        <LookingForDriver
-                            createRide={createRide}
-                            pickup={pickup}
-                            destination={destination}
-                            fare={fare}
-                            vehicleType={vehicleType}
-                            setVehicleFound={setVehicleFound}
-                            ride={ride}
-                        />
-                    </div>
-                    <div ref={waitingForDriverRef} className='fixed w-full z-40 bottom-0 translate-y-full bg-white px-3 py-6 pt-12 md:max-w-2xl md:left-1/2 md:-translate-x-1/2'>
-                        <WaitingForDriver
-                            ride={ride}
-                            setVehicleFound={setVehicleFound}
-                            setWaitingForDriver={setWaitingForDriver}
-                            waitingForDriver={waitingForDriver}
-                        />
+                    )}
+                </div>
+                <div ref={confirmRidePanelRef} className='fixed w-full hidden z-40 bottom-0 translate-y-full bg-white px-3 py-6 pt-12 md:max-w-2xl md:left-1/2 md:-translate-x-1/2'>
+                    <ConfirmRide
+                        pickup={pickup}
+                        destination={destination}
+                        fare={fare}
+                        vehicleType={vehicleType}
+                        setConfirmRidePanel={setConfirmRidePanel} 
+                        setVehicleFound={setVehicleFound}
+                        createRide={createRide}
+                    />
+                </div>
+                <div ref={vehicleFoundRef} className='fixed w-full hidden z-40 bottom-0 translate-y-full bg-white px-3 py-6 pt-12 md:max-w-2xl md:left-1/2 md:-translate-x-1/2'>
+                    <LookingForDriver
+                        createRide={createRide}
+                        pickup={pickup}
+                        destination={destination}
+                        fare={fare}
+                        vehicleType={vehicleType}
+                        setVehicleFound={setVehicleFound}
+                        ride={ride}
+                    />
+                </div>
+                <div ref={waitingForDriverRef} className='fixed w-full z-40 bottom-0 translate-y-full bg-white px-3 py-6 pt-12 md:max-w-2xl md:left-1/2 md:-translate-x-1/2'>
+                    <WaitingForDriver
+                        ride={ride}
+                        setVehicleFound={setVehicleFound}
+                        setWaitingForDriver={setWaitingForDriver}
+                        waitingForDriver={waitingForDriver}
+                    />
                     </div>
                 </div>
             </div>

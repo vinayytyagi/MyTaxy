@@ -11,6 +11,7 @@ import { SocketContext } from '../context/SocketContext'
 import axios from 'axios'
 import LiveTracking from '../../components/LiveTracking'
 import { getToken } from '../services/auth.service'
+import myTaxyLogo from '../assets/MyTaxy.png'
 
 const CaptainHome = () => {
   const [ridePopupPanel, setRidePopupPanel] = useState(false);
@@ -216,11 +217,15 @@ const handleRejectRide = (rideId) => {
   useGSAP(()=>{
     if(ridePopupPanel){
         gsap.to(ridePopupPanelRef.current,{
-            transform:'translateY(0)'
+            transform:'translateY(0)',
+            duration: 0.5,
+            ease: "power3.out"
         })
     }else{
         gsap.to(ridePopupPanelRef.current,{
-            transform:'translateY(100%)'
+            transform:'translateY(100%)',
+            duration: 0.4,
+            ease: "power2.in"
         })
     }
 },[ridePopupPanel])
@@ -228,72 +233,111 @@ const handleRejectRide = (rideId) => {
 useGSAP(()=>{
     if(confirmRidePopupPanel){
         gsap.to(confirmRidePopupPanelRef.current,{
-            transform:'translateY(0)'
+            transform:'translateY(0)',
+            duration: 0.5,
+            ease: "power3.out"
         })
     }else{
         gsap.to(confirmRidePopupPanelRef.current,{
-            transform:'translateY(100%)'
+            transform:'translateY(100%)',
+            duration: 0.4,
+            ease: "power2.in"
         })
     }
 },[confirmRidePopupPanel])
 
   return (
-    <div className='h-screen'>
-        <div className='fixed p-4 top-0 flex items-center justify-between w-screen z-50'>
-            <img className='w-16' src="https://cdn.worldvectorlogo.com/logos/uber-2.svg"/>
-            <div className="flex items-center gap-2">
-                <button 
-                    onClick={() => setShowAvailableRides(!showAvailableRides)}
-                    className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-100 transition-colors relative'
-                >
-                    <i className="text-xl ri-route-line"></i>
-                    {availableRides.length > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                            {availableRides.length}
-                        </span>
-                    )}
-                </button>
-                <Link 
-                    to='/captain-profile' 
-                    className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-100 transition-colors'
-                >
-                    <i className="text-xl ri-user-line"></i>
-                </Link>
-                <Link 
-                    to='/captain/logout' 
-                    className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-100 transition-colors'
-                >
-                    <i className="text-xl ri-logout-box-r-line"></i>
-                </Link>
-            </div>
+    <div className="relative h-screen w-full">
+      <div className='h-screen relative overflow-hidden bg-gray-50'>
+        {/* Header with blur effect */}
+        <div className='fixed px-6 py-2 top-0 flex items-center justify-between w-screen z-50 bg-white/10 backdrop-blur-xs shadow-sm'>
+          <div 
+            className="flex items-center gap-2 cursor-pointer" 
+            onClick={() => window.location.reload()}
+          >
+            <img className='w-12 h-12' src={myTaxyLogo} alt="MyTaxy Captain"/>
+            <span className="text-2xl font-bold text-gray-900">MyTaxy</span>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => setShowAvailableRides(!showAvailableRides)}
+              className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer relative'
+            >
+              <i className="text-xl ri-route-line"></i>
+              {availableRides.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {availableRides.length}
+                </span>
+              )}
+            </button>
+            <Link 
+              to='/captain-profile' 
+              className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer'
+            >
+              <i className="text-xl ri-user-line"></i>
+            </Link>
+            <Link 
+              to='/captain/logout' 
+              className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer'
+            >
+              <i className="text-xl ri-logout-box-r-line"></i>
+            </Link>
+          </div>
         </div>
-        <div className='h-3/5'>
-            <LiveTracking rideData={null} />
+
+        {/* Full screen map */}
+        <div className='h-full w-full fixed top-0 left-0 z-0'>
+          <LiveTracking rideData={null} />
         </div>
-        <div className='h-2/5 p-6'>
+
+        {/* Stats Section */}
+        <div className='absolute bottom-0 inset-x-0 z-10 max-w-2xl mx-auto md:max-w-2xl md:mx-auto shadow-lg rounded-t-3xl overflow-hidden'>
+          <div className='p-6 bg-white'>
             <CaptainDetails/>
+          </div>
         </div>
+
+        {/* Available Rides Panel */}
         {showAvailableRides && (
-            <AvailableRidesList 
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40">
+            <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white/80 backdrop-blur-sm p-4 border-b flex justify-between items-center rounded-t-3xl z-50">
+                <h2 className="text-xl font-semibold text-gray-800">Available Rides</h2>
+                <button 
+                  onClick={() => setShowAvailableRides(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                >
+                  <i className="ri-close-line text-xl"></i>
+                </button>
+              </div>
+              <AvailableRidesList 
                 rides={availableRides}
                 onAccept={handleAcceptRide}
                 onReject={handleRejectRide}
-            />
+              />
+            </div>
+          </div>
         )}
-        <div ref={ridePopupPanelRef} className=' fixed w-full z-10 bottom-0 translate-y-full px-3 py-6 pt-12 bg-white'>
-              <RidePopUp 
-              ride={ride}
-              setRidePopupPanel={setRidePopupPanel} 
-              setConfirmRidePopupPanel={setConfirmRidePopupPanel}
-              confirmRide={() => handleAcceptRide(ride)}
-               />
+
+        {/* Ride Popup Panel */}
+        <div ref={ridePopupPanelRef} className='fixed w-full z-50 bottom-0 translate-y-full bg-white rounded-t-3xl shadow-lg px-6 py-8 md:max-w-2xl md:left-1/2 md:-translate-x-1/2'>
+          <RidePopUp 
+            ride={ride}
+            setRidePopupPanel={setRidePopupPanel} 
+            setConfirmRidePopupPanel={setConfirmRidePopupPanel}
+            confirmRide={() => handleAcceptRide(ride)}
+          />
         </div>
-        <div ref={confirmRidePopupPanelRef} className=' fixed w-full z-10 h-screen bottom-0 translate-y-full px-3 py-6 pt-12 bg-white'>
-              <ConfirmRidePopUp
-                ride={ride}
-               setConfirmRidePopupPanel={setConfirmRidePopupPanel} 
-               setRidePopupPanel={setRidePopupPanel} />
+
+        {/* Confirm Ride Popup Panel */}
+        <div ref={confirmRidePopupPanelRef} className='fixed w-full z-50 h-screen bottom-0 translate-y-full bg-white rounded-t-3xl shadow-lg px-6 py-8 md:max-w-2xl md:left-1/2 md:-translate-x-1/2'>
+          <ConfirmRidePopUp
+            ride={ride}
+            setConfirmRidePopupPanel={setConfirmRidePopupPanel} 
+            setRidePopupPanel={setRidePopupPanel} 
+          />
         </div>
+      </div>
     </div>
   )
 }

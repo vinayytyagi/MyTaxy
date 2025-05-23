@@ -50,9 +50,9 @@ const UserLogin = () => {
             const data = await userLogin('guestuser@gmail.com', 'guestuser');
             if (data.token) {
                 setToken(data.token, 'user');
-                setUser(data.user);
-                toast.success('Guest login successful');
-                navigate('/home');
+            setUser(data.user);
+            toast.success('Guest login successful');
+            navigate('/home');
             } else {
                 throw new Error('No token received from server');
             }

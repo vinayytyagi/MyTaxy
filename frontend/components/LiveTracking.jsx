@@ -465,57 +465,57 @@ const LiveTracking = ({ rideData }) => {
                     backdropFilter: 'blur(8px)',
                     border: '1px solid rgba(253, 199, 0, 0.2)',
                 }}>
-                    {/* Zoom In Button */}
-                    <button
-                        onClick={() => {
-                            if (mapInstance) {
-                                const currentZoom = mapInstance.getZoom();
-                                mapInstance.setZoom(currentZoom + 1);
-                            }
-                        }}
-                        style={{
+                {/* Zoom In Button */}
+                <button
+                    onClick={() => {
+                        if (mapInstance) {
+                            const currentZoom = mapInstance.getZoom();
+                            mapInstance.setZoom(currentZoom + 1);
+                        }
+                    }}
+                    style={{
                             // background: 'gray',
                             border: '2px solid #fdc700',
                             color: 'gray',
-                            borderRadius: '50%',
-                            cursor: 'pointer',
+                        borderRadius: '50%',
+                        cursor: 'pointer',
                             width: 36,
                             height: 36,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                             transition: 'all 0.3s ease'
-                        }}
+                    }}
                         className="hover:color-[#fdc700]/90 hover:scale-110 active:scale-95"
-                        title="Zoom in"
-                    >
+                    title="Zoom in"
+                >
                         <i className="ri-add-line" style={{ fontSize: 18, color: '#fdc700' }}></i>
-                    </button>
+                </button>
 
-                    {/* Zoom Out Button */}
-                    <button
-                        onClick={() => {
-                            if (mapInstance) {
-                                const currentZoom = mapInstance.getZoom();
-                                mapInstance.setZoom(currentZoom - 1);
-                            }
-                        }}
-                        style={{
+                {/* Zoom Out Button */}
+                <button
+                    onClick={() => {
+                        if (mapInstance) {
+                            const currentZoom = mapInstance.getZoom();
+                            mapInstance.setZoom(currentZoom - 1);
+                        }
+                    }}
+                    style={{
                             border: '2px solid #fdc700',
                             color: 'gray',                            borderRadius: '50%',
-                            cursor: 'pointer',
+                        cursor: 'pointer',
                             width: 36,
                             height: 36,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                             transition: 'all 0.3s ease'
-                        }}
+                    }}
                         className="hover:color-[#fdc700]/90 hover:scale-110 active:scale-95"
-                        title="Zoom out"
-                    >
+                    title="Zoom out"
+                >
                         <i className="ri-subtract-line" style={{ fontSize: 18, color: '#fdc700' }}></i>
-                    </button>
+                </button>
                 </div>
             </div>
 

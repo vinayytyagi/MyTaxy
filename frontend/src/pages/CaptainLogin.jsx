@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CaptainDataContext } from '../context/CaptainContext';
 import { captainLogin, setToken } from '../services/auth.service';
 import { toast } from 'react-toastify';
+import axios from 'axios';
 
 const CaptainLogin = () => {
     const [email, setEmail] = useState('');
@@ -57,9 +58,46 @@ const CaptainLogin = () => {
             }
         } catch (error) {
             console.error('Guest login error:', error.response?.data); // Debug log
-            const errorMessage = error.response?.data?.message || error.message || 'Guest login failed. Please try again.';
-            toast.error(errorMessage);
-            setError(errorMessage);
+            // If login fails with 401, try to create the test account
+            if (error.response?.status === 401) {
+                try {
+                    // Create test captain account
+                    const createResponse = await axios.post(`${import.meta.env.VITE_BASE_URL}/captains/register`, {
+                        fullname: {
+                            firstname: 'Test',
+                            lastname: 'Captain'
+                        },
+                        email: 'testcaptain@gmail.com',
+                        password: 'testcaptain',
+                        vehicle: {
+                            color: 'Black',
+                            plate: 'TEST123',
+                            capacity: 4,
+                            vehicleType: 'car'
+                        }
+                    });
+
+                    if (createResponse.status === 201) {
+                        // Now try to login again
+                        toast.info('Guest captain account created, logging in...');
+                        const loginData = await captainLogin('testcaptain@gmail.com', 'testcaptain');
+                        if (loginData.token) {
+                            setToken(loginData.token, 'captain');
+                            setCaptain(loginData.captain);
+                            toast.success('Logged in as guest captain');
+                            navigate('/captain-home');
+                        }
+                    }
+                } catch (createError) {
+                    const errorMessage = createError.response?.data?.message || 'Failed to create guest captain account';
+                    toast.error(errorMessage);
+                    setError(errorMessage);
+                }
+            } else {
+                const errorMessage = error.response?.data?.message || error.message || 'Guest login failed. Please try again.';
+                toast.error(errorMessage);
+                setError(errorMessage);
+            }
         } finally {
             setIsLoading(false);
         }

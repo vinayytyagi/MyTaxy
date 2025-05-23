@@ -50,9 +50,9 @@ const UserLogin = () => {
             const data = await userLogin('guestuser@gmail.com', 'guestuser');
             if (data.token) {
                 setToken(data.token, 'user');
-            setUser(data.user);
-            toast.success('Guest login successful');
-            navigate('/home');
+                setUser(data.user);
+                toast.success('Guest login successful');
+                navigate('/home');
             } else {
                 throw new Error('No token received from server');
             }
@@ -67,12 +67,7 @@ const UserLogin = () => {
                             lastname: 'User'
                         },
                         email: 'guestuser@gmail.com',
-                        password: 'guestuser',
-                        phone: '1234567890',
-                        location: {
-                            type: 'Point',
-                            coordinates: [0, 0]
-                        }
+                        password: 'guestuser'
                     });
 
                     if (createResponse.status === 201) {

@@ -7,7 +7,7 @@ import LiveTracking from '../../components/LiveTracking';
 import { SocketContext } from '../context/SocketContext';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import myTaxyLogo from '../assets/myTaxy.png';
+import myTaxyLogo from '../assets/MyTaxy.png';
 
 const CaptainRiding = () => {
     const [finishRidePanel, setFinishRidePanel] = useState(false);

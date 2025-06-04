@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import 'remixicon/fonts/remixicon.css';
 import PaymentReceipt from '../components/PaymentReceipt';
 import { showToast } from '../components/CustomToast';
+import myTaxyLogo from '../assets/MyTaxy.png';
 
 const UserProfile = () => {
     const { user, setUser } = useContext(UserDataContext);
@@ -367,23 +368,25 @@ const UserProfile = () => {
             <div className='fixed px-6 py-2 top-0 left-0 right-0 flex items-center justify-between z-50 bg-white/10 backdrop-blur-xs shadow-sm'>
                 <div
                     className="flex items-center gap-2 cursor-pointer"
-                    onClick={() => navigate('/')} // Navigate to home on logo click
+                    onClick={() => navigate('/home')}
                 >
-                    {/* Assuming myTaxyLogo is imported in Home.jsx and can be reused or use a placeholder */}
-                    {/* Replace with actual logo import if available */}
-                    <div className='w-12 h-12 bg-[#fdc700] rounded-full flex items-center justify-center text-white font-bold text-2xl'>M</div> {/* Placeholder Logo */}
-                    <span className="text-2xl font-bold text-gray-900">MyTaxy</span>
+                    <img className='w-12 h-12' src={myTaxyLogo} alt="MyTaxy"/>
+                    <div className="flex flex-col">
+                        <span className="text-2xl font-extrabold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent tracking-tight">MyTaxy</span>
+                    </div>
                 </div>
                 <div className="flex items-center space-x-3">
                     <button 
-                        onClick={() => navigate(-1)} // Back button
-                        className="h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer"
+                        onClick={() => navigate('/home')}
+                        className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer'
+                        title="Back to Home"
                     >
-                        <i className="ri-arrow-left-line text-xl"></i>
+                        <i className="ri-home-line text-xl"></i>
                     </button>
                     <button 
                         onClick={handleLogout}
-                        className="h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer"
+                        className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer'
+                        title="Logout"
                     >
                         <i className="ri-logout-box-r-line text-xl"></i>
                     </button>

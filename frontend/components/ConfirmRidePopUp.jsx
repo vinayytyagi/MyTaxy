@@ -7,6 +7,7 @@ const ConfirmRidePopUp = (props) => {
     const [otp, setOtp] = useState('');
     const [error, setError] = useState('');
     const [rideData, setRideData] = useState(null);
+    const [showPastedMessage, setShowPastedMessage] = useState(false);
     const navigate = useNavigate();
     
     useEffect(() => {
@@ -15,6 +16,25 @@ const ConfirmRidePopUp = (props) => {
             console.log('Ride data received:', props.ride);
         }
     }, [props.ride]);
+
+    const handlePasteClick = async () => {
+        try {
+          const text = await navigator.clipboard.readText();
+          // Optionally, validate that text is a 6-digit number or format as needed
+          setOtp(text.slice(0, 6)); // limit to 6 characters
+          // Show pasted message using the same approach as Home.jsx
+          const pastedSpan = document.querySelector('.pasted-message');
+          if (pastedSpan) {
+              pastedSpan.style.opacity = '1';
+              pastedSpan.style.transition = 'opacity 300ms ease-in-out';
+              setTimeout(() => {
+                  pastedSpan.style.opacity = '0';
+              }, 2000);
+          }
+        } catch (err) {
+          console.error('Failed to read clipboard contents: ', err);
+        }
+    };
     
     const submitHandler = async (e) => {
         e.preventDefault();
@@ -183,13 +203,26 @@ const ConfirmRidePopUp = (props) => {
                                 type="text" 
                                 value={otp}
                                 onChange={(e) => setOtp(e.target.value)}
-                                className="w-full px-4 py-3 bg-gray-50 border border-[#fdc700] rounded-lg text-lg font-mono tracking-widest text-center focus:ring-[#fdc700] focus:border-[#fdc700] transition-colors cursor-text"
+                                className="w-full px-4 py-3 bg-gray-50 border border-[#fdc700] rounded-lg text-2xl placeholder:text-xl font-mono placeholder:tracking-normal tracking-[24px] text-center focus:ring-[#fdc700] focus:border-[#fdc700] transition-colors cursor-text"
                                 placeholder="Enter 6-digit OTP"
                                 maxLength="6"
                                 required
                             />
                             <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                <i className="ri-shield-keyhole-line text-[#fdc700]"></i>
+                                <button
+                                    type="button"
+                                    onClick={handlePasteClick}
+                                    className="copy-btn py-1 px-2.5 bg-[#fdc700] cursor-pointer rounded-lg hover:bg-[#fdc700]/90 transition-all duration-300 active:scale-[0.98] relative group"
+                                    title="Paste from clipboard"
+                                >
+                                    <i className="ri-clipboard-line text-lg text-gray-900 transition-transform duration-300 group-hover:scale-110"></i>
+                                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                                        Paste OTP
+                                    </span>
+                                    <span className="pasted-message absolute -top-8 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs px-2 py-1 rounded opacity-0 transition-all duration-300 whitespace-nowrap">
+                                        OTP Pasted!
+                                    </span>
+                                </button>
                             </div>
                         </div>
                     </div>

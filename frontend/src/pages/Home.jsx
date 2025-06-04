@@ -757,7 +757,9 @@ const Home = () => {
                         onClick={() => window.location.reload()}
                     >
                         <img className='w-12 h-12' src={myTaxyLogo} alt="MyTaxy"/>
-                        <span className="text-2xl font-bold text-gray-900">MyTaxy</span>
+                        <div className="flex flex-col">
+                            <span className="text-2xl font-extrabold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent tracking-tight">MyTaxy</span>
+                        </div>
                     </div>
                     <div className="flex items-center space-x-3">
                         {/* Map Type Toggle Button */}
@@ -1117,9 +1119,11 @@ const Home = () => {
                                         <div className="flex-1">
                                             <p className="text-sm text-gray-600 mb-2">Share this OTP with your captain to start the ride.</p>
                                             <div className="bg-white px-4 py-3 rounded-lg border border-gray-200 shadow-inner flex items-center justify-between">
+                                                <div className='flex flex-1 items-center justify-center'>
                                                 <p className="text-3xl font-extrabold text-gray-900 tracking-widest">
                                                     {ride.otp?.split('').join(' ') || '0 0 0 0 0 0'}
                                                 </p>
+                                                </div>
                                                 <button 
                                                     onClick={() => {
                                                         navigator.clipboard.writeText(ride.otp || '');
@@ -1134,8 +1138,8 @@ const Home = () => {
                                                             }, 2000);
                                                         }
                                                     }}
-                                                    className="copy-btn p-2 bg-[#fdc700] cursor-pointer rounded-lg hover:bg-[#fdc700]/90 transition-all duration-300 shadow-md hover:shadow-lg active:scale-[0.98] relative group">
-                                                    <i className="ri-file-copy-line text-xl text-gray-900 transition-transform duration-300 group-hover:scale-110"></i>
+                                                    className="copy-btn py-1 px-2.5 bg-[#fdc700] cursor-pointer rounded-lg hover:bg-[#fdc700]/90 transition-all duration-300 active:scale-[0.98] relative group">
+                                                    <i className="ri-file-copy-line text-lg text-gray-900 transition-transform duration-300 group-hover:scale-110"></i>
                                                     <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                                                         Copy OTP
                                                     </span>

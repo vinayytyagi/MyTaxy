@@ -335,7 +335,9 @@ const handleMapTypeChange = (newMapType) => {
             onClick={() => window.location.reload()}
           >
             <img className='w-12 h-12' src={myTaxyLogo} alt="MyTaxy Captain"/>
-            <span className="text-2xl font-bold text-gray-900">MyTaxy</span>
+            <div className="flex flex-col">
+                <span className="text-2xl font-extrabold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent tracking-tight">MyTaxy</span>
+            </div>
           </div>
           <div className="flex items-center space-x-3">
             {/* Map Type Toggle Button */}
@@ -362,7 +364,7 @@ const handleMapTypeChange = (newMapType) => {
 
               {/* Available Rides Dropdown */}
               {showAvailableRides && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 transform transition-all duration-200 ease-out z-50">
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 transform transition-all duration-200 ease-out z-[10000]">
                   {/* Header */}
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex items-center justify-between mb-1">

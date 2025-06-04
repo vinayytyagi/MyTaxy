@@ -4,6 +4,7 @@ import { SocketContext } from '../context/SocketContext';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import 'remixicon/fonts/remixicon.css';
+import myTaxyLogo from '../assets/MyTaxy.png';
 
 const CaptainProfile = () => {
   const { captain, setCaptain } = useContext(CaptainDataContext);
@@ -576,26 +577,29 @@ const CaptainProfile = () => {
       <div className='fixed px-6 py-2 top-0 left-0 right-0 flex items-center justify-between z-50 bg-white/10 backdrop-blur-xs shadow-sm'>
         <div
           className="flex items-center gap-2 cursor-pointer"
-          onClick={() => navigate('/captain-home')} // Navigate to captain home on logo click
+          onClick={() => navigate('/captain-home')}
         >
-          {/* Assuming myTaxyLogo is imported in Home.jsx and can be reused or use a placeholder */}
-          {/* Replace with actual logo import if available */}
-          <div className='w-12 h-12 bg-[#fdc700] rounded-full flex items-center justify-center text-white font-bold text-2xl'>M</div> {/* Placeholder Logo */}
-          <span className="text-2xl font-bold text-gray-900">MyTaxy</span>
+          <img className='w-12 h-12' src={myTaxyLogo} alt="MyTaxy"/>
+          <div className="flex flex-col">
+          <span className="text-2xl font-extrabold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent tracking-tight">MyTaxy</span>
+                        {/* <span className="text-[10px] font-medium text-gray-700 -mt-1 tracking-wider">Your Shortcut to Anywhere</span> */}
+          </div>
         </div>
         <div className="flex items-center space-x-3">
-        <button 
-            onClick={() => navigate('/captain-home')} // Back to captain home button
-            className="h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer"
-        >
-            <i className="ri-arrow-left-line text-xl"></i>
-        </button>
-        <button 
-          onClick={handleLogout}
-            className="h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer"
-        >
+          <button 
+            onClick={() => navigate('/captain-home')}
+            className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer'
+            title="Back to Home"
+          >
+            <i className="ri-home-line text-xl"></i>
+          </button>
+          <button 
+            onClick={handleLogout}
+            className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50 transition-colors text-gray-700 cursor-pointer'
+            title="Logout"
+          >
             <i className="ri-logout-box-r-line text-xl"></i>
-        </button>
+          </button>
         </div>
       </div>
 
@@ -822,10 +826,10 @@ const CaptainProfile = () => {
                     <div className="flex justify-between items-start mb-4">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs md:text-sm font-medium bg-gray-100 text-gray-700 border border-gray-200">
                             Ride #{rideHistory.length - (indexOfFirstRide + index)}
                           </span>
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs md:text-sm font-medium ${
                             ride.status === 'completed'
                               ? 'bg-green-50 text-green-700 border border-green-200'
                               : ride.status === 'cancelled'
@@ -845,7 +849,7 @@ const CaptainProfile = () => {
                             }`}></i>
                             {ride.status ? ride.status.charAt(0).toUpperCase() + ride.status.slice(1) : 'Unknown'}
                           </span>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-xs md:text-sm text-gray-500">
                             Ride ID: {ride._id.slice(-6).toUpperCase()}
                       </span>
                     </div>

@@ -177,7 +177,9 @@ const CaptainRiding = () => {
                 onClick={() => navigate('/captain-home')}
             >
                 <img className='w-12 h-12' src={myTaxyLogo} alt="MyTaxy"/>
-                <span className="text-2xl font-bold text-gray-900">MyTaxy</span>
+                <div className="flex flex-col">
+                    <span className="text-2xl font-extrabold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent tracking-tight">MyTaxy</span>
+                </div>
             </div>
             <div className="flex items-center space-x-3">
                 {/* Map Type Toggle Button */}

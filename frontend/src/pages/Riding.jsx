@@ -8,7 +8,7 @@ import axios from 'axios'
 import { getToken } from '../services/auth.service'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
-import myTaxyLogo from '../assets/myTaxy.png'
+import myTaxyLogo from '../assets/MyTaxy.png'
 
 const Riding = () => {
     const location = useLocation()

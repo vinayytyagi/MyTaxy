@@ -543,10 +543,10 @@ const UserProfile = () => {
                                             <div className="flex justify-between items-start mb-4">
                                                 <div>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs md:text-sm font-medium bg-gray-100 text-gray-700 border border-gray-200">
                                                             Ride #{pagination.totalRides - ((currentPage - 1) * pagination.ridesPerPage + index)}
                                                         </span>
-                                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs md:text-sm font-medium ${
                                                             ride.status === 'completed'
                                                                 ? 'bg-green-50 text-green-700 border border-green-200'
                                                                 : ride.status === 'cancelled'
@@ -566,14 +566,19 @@ const UserProfile = () => {
                                                             }`}></i>
                                                             {ride.status ? ride.status.charAt(0).toUpperCase() + ride.status.slice(1) : 'Unknown'}
                                                         </span>
-                                                        <span className="text-sm text-gray-500">
+                                                        <span className="hidden md:inline text-xs md:text-sm text-gray-500">
                                                             Ride ID: {ride._id.slice(-6).toUpperCase()}
                                                         </span>
                                                     </div>
                                                 </div>
-                                                {ride.fare && (
-                                                    <p className="text-lg font-bold text-gray-800">₹{ride.fare.toFixed(2)}</p>
-                                                )}
+                                                <div className="flex flex-col items-end">
+                                                    {ride.fare && (
+                                                        <p className="text-lg font-bold text-gray-800">₹{ride.fare.toFixed(2)}</p>
+                                                    )}
+                                                    <span className="md:hidden text-xs text-gray-500 mt-1">
+                                                       Ride ID: {ride._id.slice(-6).toUpperCase()}
+                                                    </span>
+                                                </div>
                                             </div>
 
                                             <div className="flex flex-wrap -mx-2 border-t-2 border-gray-200 pt-4">
@@ -656,13 +661,14 @@ const UserProfile = () => {
 
                                             {/* Update the receipt button condition */}
                                             {ride.status === 'completed' && ride.payment?.status === 'completed' && (
-                                                <button
-                                                    onClick={() => handleViewReceipt(ride)}
-                                                    className="mt-4 flex items-center text-sm text-yellow-600 hover:text-yellow-700"
+                                                <div className='bg-[#fdc70020] py-1 mt-3 flex justify-center rounded cursor-pointer text-sm text-yellow-700 hover:text-yellow-900'
+                                                onClick={() => handleViewReceipt(ride)}
                                                 >
+
+                                             
                                                     <i className="ri-receipt-line mr-2"></i>
                                                     View Payment Receipt
-                                                </button>
+                                                    </div>
                                             )}
                                         </div>
                                     ))}

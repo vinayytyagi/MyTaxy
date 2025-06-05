@@ -13,6 +13,19 @@ const Receipt = ({ rideId, onClose }) => {
     const { user } = useContext(UserDataContext);
     const modalRef = useRef(null);
 
+    // Add effect to prevent body scrolling when modal is open
+    useEffect(() => {
+        // Save the current body overflow style
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        // Prevent scrolling on the body
+        document.body.style.overflow = 'hidden';
+        
+        // Restore the original style when component unmounts
+        return () => {
+            document.body.style.overflow = originalStyle;
+        };
+    }, []);
+
     // Move formatDateTime to component level
     const formatDateTime = (date) => {
         if (!date) return 'N/A';

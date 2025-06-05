@@ -10,6 +10,7 @@ const captainRoutes=require('./routes/captain.routes');
 const mapRoutes=require('./routes/maps.routes');
 const rideRoute=require('./routes/ride.routes');
 const paymentRoutes = require('./routes/payment.routes');
+const receiptRoutes = require('./routes/receipt.routes');
 
 // Configure CORS using environment variables
 const corsOptions = {
@@ -36,5 +37,6 @@ app.use('/captains',captainRoutes);
 app.use('/maps',mapRoutes);
 app.use('/rides',rideRoute);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/receipts', receiptRoutes);
 
 module.exports=app;

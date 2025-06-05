@@ -3,7 +3,7 @@ import { UserDataContext } from '../context/UserContext';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import 'remixicon/fonts/remixicon.css';
-import PaymentReceipt from '../components/PaymentReceipt';
+import Receipt from '../components/Receipt';
 import { showToast } from '../components/CustomToast';
 import myTaxyLogo from '../assets/MyTaxy.png';
 
@@ -37,7 +37,7 @@ const UserProfile = () => {
 
     // Add receipt functionality
     const [showReceipt, setShowReceipt] = useState(false);
-    const [selectedPaymentId, setSelectedPaymentId] = useState(null);
+    const [selectedRideId, setSelectedRideId] = useState(null);
 
     useEffect(() => {
         // Initialize form data with user data
@@ -348,18 +348,13 @@ const UserProfile = () => {
     };
 
     // Update the handleViewReceipt function
-    const handleViewReceipt = async (ride) => {
-        try {
-            if (!ride.payment?.paymentId) {
-                showToast.error('No payment record found for this ride');
-                return;
-            }
-            setSelectedPaymentId(ride.payment.paymentId);
-            setShowReceipt(true);
-        } catch (error) {
-            console.error('Error viewing receipt:', error);
-            showToast.error('Failed to load receipt');
+    const handleViewReceipt = (ride) => {
+        if (ride.status !== 'completed' || ride.payment?.status !== 'completed') {
+            showToast.error('Receipt is only available for completed rides with successful payments');
+            return;
         }
+        setSelectedRideId(ride._id);
+        setShowReceipt(true);
     };
 
     return (
@@ -662,16 +657,15 @@ const UserProfile = () => {
                                                 )}
                                             </div>
 
-                                            {/* Update the receipt button condition */}
+                                            {/* Update the receipt button */}
                                             {ride.status === 'completed' && ride.payment?.status === 'completed' && (
-                                                <div className='bg-[#fdc70020] py-1 mt-3 flex justify-center rounded cursor-pointer text-sm text-yellow-700 hover:text-yellow-900'
-                                                onClick={() => handleViewReceipt(ride)}
+                                                <button
+                                                    onClick={() => handleViewReceipt(ride)}
+                                                    className="w-full mt-3 cursor-pointer py-2 px-4 bg-[#fdc70030] text-yellow-700 hover:text-yellow-900 hover:bg-[#fdc70040] rounded-lg transition-colors flex items-center justify-center gap-2"
                                                 >
-
-                                             
-                                                    <i className="ri-receipt-line mr-2"></i>
+                                                    <i className="ri-receipt-line"></i>
                                                     View Payment Receipt
-                                                    </div>
+                                                </button>
                                             )}
                                         </div>
                                     ))}
@@ -706,12 +700,12 @@ const UserProfile = () => {
             )}
 
             {/* Receipt Modal */}
-            {showReceipt && selectedPaymentId && (
-                <PaymentReceipt
-                    paymentId={selectedPaymentId}
+            {showReceipt && selectedRideId && (
+                <Receipt
+                    rideId={selectedRideId}
                     onClose={() => {
                         setShowReceipt(false);
-                        setSelectedPaymentId(null);
+                        setSelectedRideId(null);
                     }}
                 />
             )}

@@ -3,6 +3,7 @@ import { UserDataContext } from '../context/UserContext'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { SocketContext } from '../context/SocketContext'
+import Loader from '../components/Loader'
 
 const UserProtectedWrapper = ({children}) => {
     const token = localStorage.getItem('token')
@@ -50,7 +51,7 @@ const UserProtectedWrapper = ({children}) => {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                <Loader />
             </div>
         )
     }

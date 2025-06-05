@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { UserDataContext } from '../context/UserContext';
 import { userLogin, setToken, userRegister } from '../services/auth.service';
-import { toast } from 'react-toastify';
+import { showToast } from '../components/CustomToast';
 import axios from 'axios';
 import myTaxyLogo from '../assets/MyTaxy.png';
 
@@ -28,15 +28,15 @@ const UserLogin = () => {
             const data = await userLogin(email, password);
             if (data.token) {
                 setToken(data.token, 'user');
-            setUser(data.user);
-            toast.success('Login successful');
-            navigate('/home');
+                setUser(data.user);
+                showToast.success('Login successful');
+                navigate('/home');
             } else {
                 throw new Error('No token received from server');
             }
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Login failed. Please try again.';
-            toast.error(errorMessage);
+            showToast.error(errorMessage);
             setError(errorMessage);
         } finally {
             setIsLoading(false);
@@ -52,9 +52,9 @@ const UserLogin = () => {
             const data = await userLogin('guestuser@gmail.com', 'guestuser');
             if (data.token) {
                 setToken(data.token, 'user');
-            setUser(data.user);
-            toast.success('Guest login successful');
-            navigate('/home');
+                setUser(data.user);
+                showToast.success('Guest login successful');
+                navigate('/home');
             } else {
                 throw new Error('No token received from server');
             }
@@ -74,23 +74,23 @@ const UserLogin = () => {
 
                     if (createResponse.status === 201) {
                         // Now try to login again
-                        toast.info('Guest account created, logging in...');
+                        showToast.info('Guest account created, logging in...');
                         const loginData = await userLogin('guestuser@gmail.com', 'guestuser');
                         if (loginData.token) {
                             setToken(loginData.token, 'user');
                             setUser(loginData.user);
-                            toast.success('Logged in as guest user');
+                            showToast.success('Logged in as guest user');
                             navigate('/home');
                         }
                     }
                 } catch (createError) {
                     const errorMessage = createError.response?.data?.message || 'Failed to create guest account';
-                    toast.error(errorMessage);
+                    showToast.error(errorMessage);
                     setError(errorMessage);
                 }
             } else {
                 const errorMessage = error.response?.data?.message || error.message || 'Guest login failed. Please try again.';
-                toast.error(errorMessage);
+                showToast.error(errorMessage);
                 setError(errorMessage);
             }
         } finally {

@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { CaptainDataContext } from '../context/CaptainContext';
 import { captainLogin, setToken } from '../services/auth.service';
-import { toast } from 'react-toastify';
+import { showToast } from '../components/CustomToast';
 import axios from 'axios';
 import myTaxyLogo from '../assets/MyTaxy.png';
 
@@ -27,7 +27,7 @@ const CaptainLogin = () => {
                 setToken(data.token, 'captain');
                 console.log('Setting captain data after login:', data.captain); // Debug log
                 setCaptain(data.captain);
-                toast.success('Logged in successfully');
+                showToast.success('Logged in successfully');
                 navigate('/captain-home');
             } else {
                 throw new Error('No token received from server');
@@ -35,7 +35,7 @@ const CaptainLogin = () => {
         } catch (error) {
             console.error('Login error:', error.response?.data); // Debug log
             const errorMessage = error.response?.data?.message || error.message || 'Login failed. Please try again.';
-            toast.error(errorMessage);
+            showToast.error(errorMessage);
             setError(errorMessage);
         } finally {
             setIsLoading(false);
@@ -53,7 +53,7 @@ const CaptainLogin = () => {
                 setToken(data.token, 'captain');
                 console.log('Setting captain data after guest login:', data.captain); // Debug log
                 setCaptain(data.captain);
-                toast.success('Guest login successful');
+                showToast.success('Guest login successful');
                 navigate('/captain-home');
             } else {
                 throw new Error('No token received from server');
@@ -81,23 +81,23 @@ const CaptainLogin = () => {
 
                     if (createResponse.status === 201) {
                         // Now try to login again
-                        toast.info('Guest captain account created, logging in...');
+                        showToast.info('Guest captain account created, logging in...');
                         const loginData = await captainLogin('testcaptain@gmail.com', 'testcaptain');
                         if (loginData.token) {
                             setToken(loginData.token, 'captain');
                             setCaptain(loginData.captain);
-                            toast.success('Logged in as guest captain');
+                            showToast.success('Logged in as guest captain');
                             navigate('/captain-home');
                         }
                     }
                 } catch (createError) {
                     const errorMessage = createError.response?.data?.message || 'Failed to create guest captain account';
-                    toast.error(errorMessage);
+                    showToast.error(errorMessage);
                     setError(errorMessage);
                 }
             } else {
             const errorMessage = error.response?.data?.message || error.message || 'Guest login failed. Please try again.';
-            toast.error(errorMessage);
+            showToast.error(errorMessage);
             setError(errorMessage);
             }
         } finally {

@@ -53,6 +53,7 @@ import { LoadScript } from '@react-google-maps/api'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import CustomToast from './components/CustomToast'
+import { ToastProvider } from './components/ToastProvider'
 
 // Import context and services
 import { UserDataContext } from './context/UserContext'
@@ -73,92 +74,94 @@ const App = () => {
   const captainToken = localStorage.getItem('captainToken') // For captains
 
   return (
-    // LoadScript wraps the entire app to provide Google Maps functionality
-    <LoadScript 
-      // Google Maps API key from environment variables
-      googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
-      libraries={libraries}
-      // Loading spinner while Google Maps loads
-      loadingElement={
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader />
+    <ToastProvider>
+      {/* LoadScript wraps the entire app to provide Google Maps functionality */}
+      <LoadScript 
+        // Google Maps API key from environment variables
+        googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
+        libraries={libraries}
+        // Loading spinner while Google Maps loads
+        loadingElement={
+          <div className="flex items-center justify-center min-h-screen">
+            <Loader />
+          </div>
+        }
+        // Error handler for Google Maps loading
+        onError={(error) => console.error('Error loading Google Maps:', error)}
+      >
+        {/* Main app container */}
+        <div className="min-h-screen bg-gray-50">
+          {/* Toast notification container */}
+          <ToastContainer 
+            position="top-center" 
+            autoClose={3000}
+            className="mt-16"
+            toastClassName="bg-white rounded-lg shadow-lg"
+          />
+          <CustomToast />
+   
+          {/* Main content area */}
+          <main>
+            <Routes>
+              {/* Root route - redirects based on authentication */}
+              <Route path='/' element={
+                userToken ? <Navigate to="/home" /> :           // If user is logged in, go to home
+                captainToken ? <Navigate to="/captain-home" /> : // If captain is logged in, go to captain home
+                <UserLogin />                                   // Otherwise, show login page
+              }/>
+
+              {/* Public routes - accessible without authentication */}
+              <Route path='/login' element={<UserLogin/>}/>
+              <Route path='/signup' element={<UserSignup/>}/>
+              <Route path='/captain-login' element={<CaptainLogin/>}/>
+              <Route path='/captain-signup' element={<CaptainSignup/>}/>
+              <Route path='/riding' element={<Riding/>} />
+              <Route path='/captain-riding' element={<CaptainRiding/>}/>
+              
+              {/* Protected Routes - require authentication */}
+              {/* User (Passenger) protected routes */}
+              <Route path='/home' element={
+                <UserProtectedWrapper>
+                  <Home/>
+                </UserProtectedWrapper>
+              } />
+              <Route path='/user/logout' element={
+                <UserProtectedWrapper>
+                  <UserLogout/>
+                </UserProtectedWrapper>
+              } />
+              <Route path='/user/profile' element={
+                <UserProtectedWrapper>
+                  <UserProfile/>
+                </UserProtectedWrapper>
+              } />
+              <Route path='/profile' element={
+                <UserProtectedWrapper>
+                  <Profile />
+                </UserProtectedWrapper>
+              } />
+
+              {/* Captain protected routes */}
+              <Route path='/captain-home' element={
+                <CaptainProtectWrapper>
+                  <CaptainHome/>
+                </CaptainProtectWrapper>
+              }/>
+              <Route path='/captain/logout' element={
+                <CaptainProtectWrapper>
+                  <CaptainLogout/>
+                </CaptainProtectWrapper>
+              }/>
+              <Route path='/captain-profile' element={
+                <CaptainProtectWrapper>
+                  <CaptainProfile/>
+                </CaptainProtectWrapper>
+              }/>
+            </Routes>
+          </main>
         </div>
-      }
-      // Error handler for Google Maps loading
-      onError={(error) => console.error('Error loading Google Maps:', error)}
-    >
-      {/* Main app container */}
-      <div className="min-h-screen bg-gray-50">
-        {/* Toast notification container */}
-        <ToastContainer 
-          position="top-center" 
-          autoClose={3000}
-          className="mt-16"
-          toastClassName="bg-white rounded-lg shadow-lg"
-        />
-        <CustomToast />
- 
-        {/* Main content area */}
-        <main>
-          <Routes>
-            {/* Root route - redirects based on authentication */}
-            <Route path='/' element={
-              userToken ? <Navigate to="/home" /> :           // If user is logged in, go to home
-              captainToken ? <Navigate to="/captain-home" /> : // If captain is logged in, go to captain home
-              <UserLogin />                                   // Otherwise, show login page
-            }/>
-
-            {/* Public routes - accessible without authentication */}
-            <Route path='/login' element={<UserLogin/>}/>
-            <Route path='/signup' element={<UserSignup/>}/>
-            <Route path='/captain-login' element={<CaptainLogin/>}/>
-            <Route path='/captain-signup' element={<CaptainSignup/>}/>
-            <Route path='/riding' element={<Riding/>} />
-            <Route path='/captain-riding' element={<CaptainRiding/>}/>
-            
-            {/* Protected Routes - require authentication */}
-            {/* User (Passenger) protected routes */}
-            <Route path='/home' element={
-              <UserProtectedWrapper>
-                <Home/>
-              </UserProtectedWrapper>
-            } />
-            <Route path='/user/logout' element={
-              <UserProtectedWrapper>
-                <UserLogout/>
-              </UserProtectedWrapper>
-            } />
-            <Route path='/user/profile' element={
-              <UserProtectedWrapper>
-                <UserProfile/>
-              </UserProtectedWrapper>
-            } />
-            <Route path='/profile' element={
-              <UserProtectedWrapper>
-                <Profile />
-              </UserProtectedWrapper>
-            } />
-
-            {/* Captain protected routes */}
-            <Route path='/captain-home' element={
-              <CaptainProtectWrapper>
-                <CaptainHome/>
-              </CaptainProtectWrapper>
-            }/>
-            <Route path='/captain/logout' element={
-              <CaptainProtectWrapper>
-                <CaptainLogout/>
-              </CaptainProtectWrapper>
-            }/>
-            <Route path='/captain-profile' element={
-              <CaptainProtectWrapper>
-                <CaptainProfile/>
-              </CaptainProtectWrapper>
-            }/>
-          </Routes>
-        </main>
-      </div>
-    </LoadScript>
+      </LoadScript>
+    </ToastProvider>
   )
 }
 

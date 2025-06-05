@@ -1,80 +1,98 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { RiCheckboxCircleFill, RiErrorWarningFill, RiInformationFill, RiCloseLine } from 'react-icons/ri';
 
-// Custom toast styles with improved design
+// Custom toast styles with MyTaxy theme
 const toastStyles = {
     success: {
         style: {
-            background: '#f0fdf4',
-            color: '#166534',
-            border: '1px solid #bbf7d0',
+            background: '#fff',
+            color: '#1a1a1a',
+            border: '1px solid #22c55e',
             padding: '12px 16px',
             borderRadius: '12px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 4px 12px rgba(34, 197, 94, 0.15)',
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
             minWidth: '320px',
             maxWidth: '400px',
-            position: 'relative',
-            overflow: 'hidden',
-            transform: 'translateY(0)',
-            transition: 'all 0.3s ease-in-out',
-            opacity: 1,
+            animation: 'slideIn 0.3s ease-out forwards',
         },
-        icon: <RiCheckboxCircleFill className="text-green-600 text-xl flex-shrink-0" />,
-        progressBar: 'bg-green-500'
+        icon: <RiCheckboxCircleFill className="text-green-500 text-xl flex-shrink-0" />
     },
     error: {
         style: {
-            background: '#fef2f2',
-            color: '#991b1b',
-            border: '1px solid #fecaca',
+            background: '#fff',
+            color: '#1a1a1a',
+            border: '1px solid #ef4444',
             padding: '12px 16px',
             borderRadius: '12px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)',
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
             minWidth: '320px',
             maxWidth: '400px',
-            position: 'relative',
-            overflow: 'hidden',
-            marginTop: '16px',
-            transform: 'translateY(0)',
-            transition: 'all 0.3s ease-in-out',
-            opacity: 1,
+            animation: 'slideIn 0.3s ease-out forwards',
         },
-        icon: <RiErrorWarningFill className="text-red-600 text-xl flex-shrink-0" />,
-        progressBar: 'bg-red-500'
+        icon: <RiErrorWarningFill className="text-red-500 text-xl flex-shrink-0" />
     },
     info: {
         style: {
-            background: '#eff6ff',
-            color: '#1e40af',
-            border: '1px solid #bfdbfe',
+            background: '#fff',
+            color: '#1a1a1a',
+            border: '1px solid #fdc700',
             padding: '12px 16px',
             borderRadius: '12px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 4px 12px rgba(253, 199, 0, 0.15)',
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
             minWidth: '320px',
             maxWidth: '400px',
-            position: 'relative',
-            overflow: 'hidden',
-            marginTop: '16px',
-            transform: 'translateY(0)',
-            transition: 'all 0.3s ease-in-out',
-            opacity: 1,
+            animation: 'slideIn 0.3s ease-out forwards',
         },
-        icon: <RiInformationFill className="text-blue-600 text-xl flex-shrink-0" />,
-        progressBar: 'bg-blue-500'
+        icon: <RiInformationFill className="text-[#fdc700] text-xl flex-shrink-0" />
     }
 };
 
-// Custom toast component with progress bar
+// Add keyframes for slide-in animation
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(styleSheet);
+
+// Simple toast component
+const SimpleToast = ({ message, type, onClose }) => {
+    const style = toastStyles[type];
+    return (
+        <div style={style.style} className="group">
+            {style.icon}
+            <div className="flex-1">
+                <p className="font-medium">{message}</p>
+            </div>
+            <button
+                onClick={onClose}
+                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-black/5 rounded-full"
+            >
+                <RiCloseLine className="text-gray-500" />
+            </button>
+        </div>
+    );
+};
+
+// Custom toast component
 const CustomToast = ({ children }) => {
     return (
         <Toaster
@@ -85,10 +103,11 @@ const CustomToast = ({ children }) => {
                 transform: 'translateX(-50%)',
             }}
             toastOptions={{
-                duration: 4000,
+                duration: 3000,
                 style: {
-                    background: '#fff',
-                    color: '#333',
+                    background: 'transparent',
+                    boxShadow: 'none',
+                    padding: 0,
                 },
                 success: {
                     ...toastStyles.success,
@@ -97,7 +116,7 @@ const CustomToast = ({ children }) => {
                 },
                 error: {
                     ...toastStyles.error,
-                    duration: 4000,
+                    duration: 3000,
                     className: 'toast-error',
                 },
                 custom: {
@@ -112,50 +131,12 @@ const CustomToast = ({ children }) => {
     );
 };
 
-// Custom toast component with progress bar
-const ToastWithProgress = ({ message, type, onClose }) => {
-    const progressRef = useRef(null);
-    const style = toastStyles[type];
-
-    useEffect(() => {
-        if (progressRef.current) {
-            progressRef.current.style.width = '100%';
-            progressRef.current.style.transition = `width ${type === 'error' ? 4 : 3}s linear`;
-            setTimeout(() => {
-                if (progressRef.current) {
-                    progressRef.current.style.width = '0%';
-                }
-            }, 50);
-        }
-    }, []);
-
-    return (
-        <div style={style.style} className="group">
-            {style.icon}
-            <div className="flex-1">
-                <p className="font-medium">{message}</p>
-            </div>
-            <button
-                onClick={onClose}
-                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-black/5 rounded-full"
-            >
-                <RiCloseLine className="text-gray-500" />
-            </button>
-            <div 
-                ref={progressRef}
-                className={`absolute bottom-0 left-0 h-1 ${style.progressBar} transition-all duration-300`}
-                style={{ width: '100%' }}
-            />
-        </div>
-    );
-};
-
-// Custom toast functions with improved animations
+// Custom toast functions
 export const showToast = {
     success: (message) => {
         toast.custom(
             (t) => (
-                <ToastWithProgress
+                <SimpleToast
                     message={message}
                     type="success"
                     onClose={() => toast.dismiss(t.id)}
@@ -170,7 +151,7 @@ export const showToast = {
     error: (message) => {
         toast.custom(
             (t) => (
-                <ToastWithProgress
+                <SimpleToast
                     message={message}
                     type="error"
                     onClose={() => toast.dismiss(t.id)}
@@ -178,14 +159,14 @@ export const showToast = {
             ),
             {
                 ...toastStyles.error,
-                duration: 4000,
+                duration: 3000,
             }
         );
     },
     info: (message) => {
         toast.custom(
             (t) => (
-                <ToastWithProgress
+                <SimpleToast
                     message={message}
                     type="info"
                     onClose={() => toast.dismiss(t.id)}
